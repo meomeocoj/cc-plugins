@@ -1,0 +1,9 @@
+{
+  "name": "data-analyze",
+  "version": "0.1.0",
+  "description": "Comprehensive data analysis toolkit using DuckDB SQL for CSV, JSON, and database results",
+  "author": {
+    "name": "meomeocoj"
+  },
+  "keywords": ["data", "analysis", "duckdb", "sql", "csv", "json", "statistics"]
+}
