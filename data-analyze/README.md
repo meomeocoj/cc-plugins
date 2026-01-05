@@ -6,7 +6,8 @@ Federated data analysis plugin using DuckDB to query across PostgreSQL, MySQL, a
 
 - **Cross-database queries**: Join tables across different database systems
 - **Schema exploration**: List tables, describe columns, sample data
-- **Credential management**: Secure, gitignored credential storage
+- **Flexible credentials**: Project or user-scoped credential files
+- **Credential protection**: Hook prevents credential files from being read by LLM
 - **Multiple output formats**: Table, JSON, CSV, Markdown
 
 ## Prerequisites
@@ -14,35 +15,52 @@ Federated data analysis plugin using DuckDB to query across PostgreSQL, MySQL, a
 - Python 3.8+
 - DuckDB (`pip install duckdb`)
 
+## Quick Start
+
+Run the setup command to check requirements:
+
+```
+/data-analyze:setup
+```
+
 ## Setup
 
-1. Copy the credentials template:
-   ```bash
-   cp skills/unified-sql/database-credentials.example.json \
-      skills/unified-sql/database-credentials.json
-   ```
+### 1. Create Credentials File
 
-2. Edit `database-credentials.json` with your database connections:
-   ```json
-   {
-     "databases": [
-       {
-         "name": "prod_db",
-         "type": "postgres",
-         "host": "localhost",
-         "port": 5432,
-         "database": "mydb",
-         "user": "user",
-         "password": "secret"
-       }
-     ]
-   }
-   ```
+Credentials are stored in `.claude/data-analyze/credentials.json` at either:
+- **Project scope**: `./.claude/data-analyze/credentials.json`
+- **User scope**: `~/.claude/data-analyze/credentials.json`
 
-3. Secure the file:
-   ```bash
-   chmod 600 skills/unified-sql/database-credentials.json
-   ```
+```bash
+# Create user-scoped credentials
+mkdir -p ~/.claude/data-analyze
+cp skills/unified-sql/database-credentials.example.json \
+   ~/.claude/data-analyze/credentials.json
+```
+
+### 2. Edit Credentials
+
+```json
+{
+  "databases": [
+    {
+      "name": "prod_db",
+      "type": "postgres",
+      "host": "localhost",
+      "port": 5432,
+      "database": "mydb",
+      "user": "user",
+      "password": "secret"
+    }
+  ]
+}
+```
+
+### 3. Secure the File
+
+```bash
+chmod 600 ~/.claude/data-analyze/credentials.json
+```
 
 ## Usage
 
@@ -83,6 +101,11 @@ python scripts/federated_query.py --name prod_db \
 data-analyze/
 ├── .claude-plugin/plugin.json
 ├── README.md
+├── commands/
+│   └── setup.md              # /setup command
+├── hooks/
+│   ├── hooks.json            # Hook configuration
+│   └── block-credentials.sh  # Blocks credential file reads
 └── skills/unified-sql/
     ├── SKILL.md
     ├── database-credentials.example.json
@@ -96,11 +119,20 @@ data-analyze/
         └── query_patterns.md
 ```
 
+## Credential Search Order
+
+The plugin searches for credentials in this order:
+1. `./.claude/data-analyze/credentials.json` (project)
+2. `~/.claude/data-analyze/credentials.json` (user)
+
+Project credentials take priority, allowing project-specific database configurations.
+
 ## Security
 
-- `database-credentials.json` is gitignored
-- Use read-only database accounts for analytics
-- Credentials referenced by name, never exposed in queries
+- **Credential protection**: PreToolUse hook blocks LLM from reading credential files
+- **Gitignored**: Credentials stored in `.claude/` which is typically gitignored
+- **Read-only**: Use read-only database accounts for analytics
+- **Name-based**: Credentials referenced by name, passwords never in queries
 
 ## License
 

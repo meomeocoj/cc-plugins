@@ -11,6 +11,27 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 
+def get_search_paths() -> List[Path]:
+    """Get list of paths to search for credentials file."""
+    return [
+        Path.cwd() / ".claude" / "data-analyze" / "credentials.json",  # Project
+        Path.home() / ".claude" / "data-analyze" / "credentials.json",  # User
+    ]
+
+
+def find_credentials_file() -> Optional[Path]:
+    """
+    Search for credentials file in priority order.
+
+    Returns:
+        Path to credentials file if found, None otherwise
+    """
+    for path in get_search_paths():
+        if path.exists():
+            return path
+    return None
+
+
 class DatabaseCredential:
     """Represents a single database credential."""
 
@@ -66,17 +87,17 @@ class CredentialManager:
 
         Args:
             credentials_file: Path to credentials JSON file.
-                            If None, looks for database-credentials.json in skill directory.
+                            If None, searches in priority order:
+                            1. ./.claude/data-analyze/credentials.json (project)
+                            2. ~/.claude/data-analyze/credentials.json (user)
         """
         if credentials_file is None:
-            # Default to skill directory
-            skill_dir = Path(__file__).parent.parent
-            credentials_file = skill_dir / "database-credentials.json"
+            credentials_file = find_credentials_file()
 
-        self.credentials_file = Path(credentials_file)
+        self.credentials_file = Path(credentials_file) if credentials_file else None
         self.credentials: Dict[str, DatabaseCredential] = {}
 
-        if self.credentials_file.exists():
+        if self.credentials_file and self.credentials_file.exists():
             self._load_credentials()
 
     def _load_credentials(self):
@@ -154,3 +175,71 @@ def parse_credential_names(names_arg: Optional[str]) -> List[str]:
     if not names_arg:
         return []
     return [name.strip() for name in names_arg.split(",") if name.strip()]
+
+
+def validate_credential_config(config: Dict) -> tuple[bool, Optional[str]]:
+    """
+    Validate a credential configuration without raising exceptions.
+
+    Args:
+        config: Database configuration dict
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    if "name" not in config:
+        return False, "missing 'name' field"
+    if "type" not in config:
+        return False, "missing 'type' field"
+
+    db_type = config["type"].lower()
+
+    if db_type == "sqlite":
+        if "path" not in config:
+            return False, "missing 'path' field"
+    elif db_type in ("postgres", "mysql"):
+        required = ["host", "database", "user", "password"]
+        missing = [f for f in required if f not in config]
+        if missing:
+            return False, f"missing fields: {', '.join(missing)}"
+    else:
+        return False, f"unsupported type '{db_type}'"
+
+    return True, None
+
+
+def validate_credentials_file(file_path: Path) -> List[Dict]:
+    """
+    Validate credentials file and return validation results.
+
+    Args:
+        file_path: Path to credentials file
+
+    Returns:
+        List of dicts with 'name', 'type', 'valid', 'error' keys
+    """
+    results = []
+
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        return [{"name": "file", "type": "json", "valid": False, "error": f"Invalid JSON: {e}"}]
+    except Exception as e:
+        return [{"name": "file", "type": "file", "valid": False, "error": str(e)}]
+
+    if "databases" not in data:
+        return [{"name": "file", "type": "structure", "valid": False, "error": "missing 'databases' array"}]
+
+    for config in data["databases"]:
+        name = config.get("name", "unnamed")
+        db_type = config.get("type", "unknown")
+        valid, error = validate_credential_config(config)
+        results.append({
+            "name": name,
+            "type": db_type,
+            "valid": valid,
+            "error": error
+        })
+
+    return results
