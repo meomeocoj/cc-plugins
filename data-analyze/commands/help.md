@@ -1,5 +1,5 @@
 ---
-name: help
+name: data-analyze:help
 description: Show data-analyze plugin help and available commands
 allowed-tools: []
 ---

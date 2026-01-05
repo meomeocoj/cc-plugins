@@ -1,5 +1,5 @@
 ---
-name: setup
+name: data-analyze:setup
 description: Check data-analyze plugin requirements (DuckDB, credentials)
 allowed-tools:
   - Bash
@@ -23,8 +23,7 @@ else
     echo "❌ DuckDB: not installed"
     echo ""
     echo "Install DuckDB:"
-    echo "  macOS: brew install duckdb"
-    echo "  Linux: https://duckdb.org/docs/installation/"
+    echo "https://duckdb.org/docs/installation/"
 fi
 ```
 
@@ -53,7 +52,7 @@ else
     echo "  2. $user_creds (user)"
     echo ""
     echo "To create credentials:"
-    echo "  mkdir -p ~/.claude/data-analyze"
+    echo "  mkdir -p $project_creds"
     echo "  # Copy the example template from plugin and edit with your database details"
 fi
 ```
