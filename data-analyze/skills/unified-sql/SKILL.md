@@ -207,44 +207,6 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --query "SELECT * FROM kolverse.users u JOIN analytics_db.metrics m ON u.id = m.user_id"
 ```
 
-## Common Query Patterns
-
-### Schema Inspection
-```sql
--- Use your credential name instead of "prod_db"
-SHOW TABLES FROM prod_db;
-DESCRIBE prod_db.table_name;
-```
-
-### Data Sampling
-```sql
-SELECT * FROM prod_db.large_table LIMIT 100;
-SELECT * FROM prod_db.table TABLESAMPLE BERNOULLI(1);  -- 1% sample
-```
-
-### Aggregation
-```sql
-SELECT
-    category,
-    COUNT(*) as count,
-    AVG(price) as avg_price
-FROM prod_db.products
-GROUP BY category
-ORDER BY count DESC;
-```
-
-### Data Quality Checks
-```sql
--- Find orphaned foreign keys across databases
--- Requires --names users_db,orders_db
-SELECT 'orphaned_orders' as issue, COUNT(*) as count
-FROM orders_db.orders o
-LEFT JOIN users_db.users u ON o.user_id = u.id
-WHERE u.id IS NULL;
-```
-
-For more patterns including three-way joins, window functions, and performance optimization, see [references/query_patterns.md](references/query_patterns.md).
-
 ## Available Extensions
 
 DuckDB supports many database extensions:
