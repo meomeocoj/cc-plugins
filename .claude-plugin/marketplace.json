@@ -1,0 +1,22 @@
+{
+  "name": "cc-plugins",
+  "displayName": "CC Plugins",
+  "description": "My awesome collection of custom plugins for my development life",
+  "version": "0.1.0",
+  "author": {
+    "name": "meomeocoj",
+    "email": "tminh1103@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meomeocoj/cc-plugins"
+  },
+  "keywords": [
+    "claude-code",
+    "plugin"
+  ],
+  "license": "MIT",
+  "engines": {
+    "claude-code": ">=1.0.0"
+  }
+}
