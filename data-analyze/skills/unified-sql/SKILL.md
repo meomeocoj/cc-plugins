@@ -37,19 +37,19 @@ jq '.databases[] | select(.name=="your_db_name") | {name, type, host, database}'
 
 ```bash
 # List all tables
-python scripts/schema_explorer.py --name prod_db --list-tables
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name prod_db --list-tables
 
 # Describe a specific table
-python scripts/schema_explorer.py --name prod_db --describe users
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name prod_db --describe users
 
 # Sample data from a table
-python scripts/schema_explorer.py --name prod_db --sample orders --limit 10
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name prod_db --sample orders --limit 10
 ```
 
 ### Simple Queries
 
 ```bash
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --name prod_db \
   --query "SELECT * FROM prod_db.users WHERE created_at >= '2024-01-01' LIMIT 10"
 ```
@@ -57,7 +57,7 @@ python scripts/federated_query.py \
 ### Cross-Database Queries
 
 ```bash
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --names prod_db,sales_db \
   --query "SELECT u.email, o.order_id FROM prod_db.users u JOIN sales_db.orders o ON u.id = o.user_id"
 ```
@@ -77,13 +77,13 @@ Examine table structures, columns, and data types without writing SQL.
 **Example workflow:**
 ```bash
 # Step 1: List tables
-python scripts/schema_explorer.py --name prod_db --list-tables
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name prod_db --list-tables
 
 # Step 2: Examine specific table
-python scripts/schema_explorer.py --name prod_db --describe users
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name prod_db --describe users
 
 # Step 3: Sample data
-python scripts/schema_explorer.py --name prod_db --sample users --limit 5
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name prod_db --sample users --limit 5
 ```
 
 ### 2. Cross-Database Joins
@@ -104,7 +104,7 @@ JOIN orders_db.table2 o ON u.id = o.foreign_id
 
 **Example:**
 ```bash
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --names users_db,orders_db \
   --query "
     SELECT
@@ -123,7 +123,7 @@ Analyze query performance and execution plans.
 
 **Using EXPLAIN:**
 ```bash
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --name prod_db \
   --query "EXPLAIN SELECT * FROM prod_db.large_table WHERE created_at >= '2024-01-01'"
 ```
@@ -136,13 +136,13 @@ Export query results in multiple formats.
 
 ```bash
 # Export to JSON
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --name prod_db \
   --query "SELECT * FROM prod_db.users" \
   --format json > output.json
 
 # Export to CSV
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --name prod_db \
   --query "SELECT * FROM prod_db.analytics" \
   --format csv > output.csv
@@ -185,13 +185,13 @@ jq -e '.databases[] | select(.name=="kolverse")' database-credentials.json
 **Single database:**
 ```bash
 # Scripts read credentials from database-credentials.json automatically
-python scripts/schema_explorer.py --name kolverse --list-tables
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name kolverse --list-tables
 ```
 
 **Multiple databases (federated query):**
 ```bash
 # Reference multiple databases by name (comma-separated)
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --names kolverse,analytics_db \
   --query "SELECT * FROM kolverse.users u JOIN analytics_db.metrics m ON u.id = m.user_id"
 ```
@@ -257,10 +257,10 @@ See [references/extensions.md](references/extensions.md) for detailed extension 
 
 ```bash
 # List all schemas and tables
-python scripts/schema_explorer.py --name kolverse --list-tables
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name kolverse --list-tables
 
 # Query silver layer data
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --name kolverse \
   --query "SELECT account_id, COUNT(*) FROM kolverse.bronze.tweets GROUP BY account_id LIMIT 10"
 ```
@@ -272,7 +272,7 @@ python scripts/federated_query.py \
 jq -r '.databases[].name' database-credentials.json
 
 # Join project data with external database by name
-python scripts/federated_query.py \
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
   --names kolverse,external_analytics \
   --query "
     SELECT
