@@ -1,9 +1,9 @@
 ---
-name: duckdb-federated-query
+name: unified-sql
 description: Query databases and explore data. Use when the user mentions database, query, SQL, table, schema, data exploration, "check the data", "look at the database", "what's in the table", "show me records", "find in database", PostgreSQL, MySQL, SQLite, cross-database joins, data validation, or export query results. Also triggers on: exploring schemas, sampling data, running analytics queries, checking data quality, or any task involving database operations.
 ---
 
-# DuckDB Federated Query
+# Unified SQL
 
 Query and analyze data across PostgreSQL, MySQL, and SQLite databases using DuckDB as a unified query engine.
 

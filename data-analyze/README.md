@@ -18,8 +18,8 @@ Federated data analysis plugin using DuckDB to query across PostgreSQL, MySQL, a
 
 1. Copy the credentials template:
    ```bash
-   cp skills/duckdb-federated-query/database-credentials.example.json \
-      skills/duckdb-federated-query/database-credentials.json
+   cp skills/unified-sql/database-credentials.example.json \
+      skills/unified-sql/database-credentials.json
    ```
 
 2. Edit `database-credentials.json` with your database connections:
@@ -41,7 +41,7 @@ Federated data analysis plugin using DuckDB to query across PostgreSQL, MySQL, a
 
 3. Secure the file:
    ```bash
-   chmod 600 skills/duckdb-federated-query/database-credentials.json
+   chmod 600 skills/unified-sql/database-credentials.json
    ```
 
 ## Usage
@@ -83,7 +83,7 @@ python scripts/federated_query.py --name prod_db \
 data-analyze/
 ├── .claude-plugin/plugin.json
 ├── README.md
-└── skills/duckdb-federated-query/
+└── skills/unified-sql/
     ├── SKILL.md
     ├── database-credentials.example.json
     ├── .gitignore
