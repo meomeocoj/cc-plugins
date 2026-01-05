@@ -116,6 +116,7 @@ data-analyze/
     │   └── credential_manager.py
     └── references/
         ├── extensions.md
+        ├── connection_examples.md
         └── query_patterns.md
 ```
 

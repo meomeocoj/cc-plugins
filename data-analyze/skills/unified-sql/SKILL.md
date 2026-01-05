@@ -262,70 +262,7 @@ DuckDB supports many database extensions:
 
 See [references/extensions.md](references/extensions.md) for detailed extension documentation and usage examples.
 
-## Integration with Project
-
-### Query Bronze/Silver Tables
-
-```bash
-# List all schemas and tables
-python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name kolverse --list-tables
-
-# Query silver layer data
-python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
-  --name kolverse \
-  --query "SELECT account_id, COUNT(*) FROM kolverse.bronze.tweets GROUP BY account_id LIMIT 10"
-```
-
-### Compare with External Analytics
-
-```bash
-# Find credentials and show available databases
-CREDS=".claude/data-analyze/credentials.json"
-[ -f "./$CREDS" ] && CREDS_FILE="./$CREDS" || CREDS_FILE="$HOME/$CREDS"
-jq -r '.databases[].name' "$CREDS_FILE"
-
-# Join project data with external database by name
-python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
-  --names kolverse,external_analytics \
-  --query "
-    SELECT
-      t.username,
-      COUNT(t.id) as tweet_count,
-      a.engagement_score
-    FROM kolverse.bronze.tweets t
-    LEFT JOIN external_analytics.twitter_metrics a ON t.account_id = a.account_id
-    WHERE t.created_at >= CURRENT_DATE - INTERVAL '30 days'
-    GROUP BY t.username, a.engagement_score
-    ORDER BY tweet_count DESC
-  "
-```
-
 ## Troubleshooting
-
-### Credential Issues
-```bash
-# Check credential file locations
-CREDS=".claude/data-analyze/credentials.json"
-ls -la "./$CREDS" 2>/dev/null || ls -la "$HOME/$CREDS" 2>/dev/null || echo "No credentials found"
-
-# Find and use credentials file
-[ -f "./$CREDS" ] && CREDS_FILE="./$CREDS" || CREDS_FILE="$HOME/$CREDS"
-
-# Show available databases
-jq -r '.databases[].name' "$CREDS_FILE"
-
-# Validate JSON syntax
-jq . "$CREDS_FILE"
-
-# Show specific database configuration (without exposing password)
-jq '.databases[] | select(.name=="kolverse") | {name, type, host, database}' "$CREDS_FILE"
-```
-
-### Connection Errors
-- Verify database is accessible: `psql -h HOST -U USER -d DATABASE` (use credentials from your config)
-- Check firewall rules and port accessibility
-- Confirm credentials in `.claude/data-analyze/credentials.json` are correct
-- Test connection manually first before using the skill
 
 ### Extension Not Found
 ```python
