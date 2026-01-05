@@ -7,8 +7,20 @@ Manages database credentials from .claude/data-analyze/credentials.json file.
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
+
+
+def sanitize_error_message(error_msg: str) -> str:
+    """Sanitize error messages to prevent credential leakage."""
+    # Remove potential passwords from error messages
+    error_msg = re.sub(r'password=[^\s&"\']+', 'password=***', error_msg, flags=re.IGNORECASE)
+    error_msg = re.sub(r'pwd=[^\s&"\']+', 'pwd=***', error_msg, flags=re.IGNORECASE)
+    error_msg = re.sub(r'"password"\s*:\s*"[^"]*"', '"password": "***"', error_msg, flags=re.IGNORECASE)
+    # Remove potential connection strings
+    error_msg = re.sub(r'host=[^\s]+\s+.*?password=[^\s]+', '[connection details redacted]', error_msg, flags=re.IGNORECASE)
+    return error_msg
 
 
 def get_search_paths() -> List[Path]:
@@ -118,7 +130,7 @@ class CredentialManager:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in credentials file: {e}")
         except Exception as e:
-            raise ValueError(f"Error loading credentials: {e}")
+            raise ValueError(f"Error loading credentials: {sanitize_error_message(str(e))}")
 
     def get(self, name: str) -> DatabaseCredential:
         """

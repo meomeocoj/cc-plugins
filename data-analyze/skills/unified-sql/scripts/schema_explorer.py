@@ -16,6 +16,7 @@ Usage (direct connection):
 """
 
 import argparse
+import re
 import sys
 import duckdb
 from pathlib import Path
@@ -25,8 +26,55 @@ sys.path.insert(0, str(Path(__file__).parent))
 from credential_manager import CredentialManager
 
 
+# Valid identifier pattern (alphanumeric, underscore, dots for schema.table)
+VALID_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$')
+
+
+def validate_identifier(name: str, identifier_type: str = "identifier") -> str:
+    """
+    Validate SQL identifier to prevent SQL injection.
+
+    Args:
+        name: The identifier to validate
+        identifier_type: Type of identifier for error messages (e.g., "table", "schema")
+
+    Returns:
+        The validated identifier
+
+    Raises:
+        ValueError: If the identifier contains invalid characters
+    """
+    if not name:
+        raise ValueError(f"Empty {identifier_type} name")
+
+    if not VALID_IDENTIFIER_PATTERN.match(name):
+        raise ValueError(
+            f"Invalid {identifier_type} name '{name}'. "
+            f"Only alphanumeric characters and underscores are allowed."
+        )
+
+    # Check for SQL keywords that could be dangerous
+    dangerous_keywords = {'DROP', 'DELETE', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER', 'CREATE', 'GRANT', 'REVOKE'}
+    if name.upper() in dangerous_keywords:
+        raise ValueError(f"Reserved keyword '{name}' cannot be used as {identifier_type} name")
+
+    return name
+
+
+def sanitize_error_message(error: Exception) -> str:
+    """Sanitize error messages to prevent credential leakage."""
+    error_msg = str(error)
+    # Remove potential passwords from error messages
+    error_msg = re.sub(r'password=[^\s&]+', 'password=***', error_msg, flags=re.IGNORECASE)
+    error_msg = re.sub(r'pwd=[^\s&]+', 'pwd=***', error_msg, flags=re.IGNORECASE)
+    # Remove potential connection strings
+    error_msg = re.sub(r'host=[^\s]+\s+.*?password=[^\s]+', '[connection details redacted]', error_msg, flags=re.IGNORECASE)
+    return error_msg
+
+
 def setup_connection(con: duckdb.DuckDBPyConnection, db_type: str, connection_string: str, alias: str = "db"):
     """Setup database connection based on type."""
+    alias = validate_identifier(alias, "alias")
     if db_type == "postgres":
         con.execute("INSTALL postgres")
         con.execute("LOAD postgres")
@@ -43,6 +91,7 @@ def setup_connection(con: duckdb.DuckDBPyConnection, db_type: str, connection_st
 
 def list_tables(con: duckdb.DuckDBPyConnection, schema: str = "db"):
     """List all tables in the attached database."""
+    schema = validate_identifier(schema, "schema")
     print("📋 Available tables:\n")
     result = con.execute(f"SHOW TABLES FROM {schema}").fetchall()
     for table in result:
@@ -52,6 +101,8 @@ def list_tables(con: duckdb.DuckDBPyConnection, schema: str = "db"):
 
 def describe_table(con: duckdb.DuckDBPyConnection, table_name: str, schema: str = "db"):
     """Describe table schema (columns, types, nullability)."""
+    schema = validate_identifier(schema, "schema")
+    table_name = validate_identifier(table_name, "table")
     print(f"📊 Schema for table '{table_name}':\n")
     result = con.execute(f"DESCRIBE {schema}.{table_name}").df()
     print(result.to_markdown(index=False))
@@ -60,6 +111,12 @@ def describe_table(con: duckdb.DuckDBPyConnection, table_name: str, schema: str 
 
 def sample_data(con: duckdb.DuckDBPyConnection, table_name: str, schema: str = "db", limit: int = 5):
     """Show sample rows from a table."""
+    schema = validate_identifier(schema, "schema")
+    table_name = validate_identifier(table_name, "table")
+    # Validate limit is a positive integer
+    if not isinstance(limit, int) or limit < 1:
+        raise ValueError("Limit must be a positive integer")
+    limit = min(limit, 10000)  # Cap at 10000 for safety
     print(f"🔍 Sample data from '{table_name}' (limit {limit}):\n")
     result = con.execute(f"SELECT * FROM {schema}.{table_name} LIMIT {limit}").df()
     print(result.to_markdown(index=False))
@@ -68,6 +125,8 @@ def sample_data(con: duckdb.DuckDBPyConnection, table_name: str, schema: str = "
 
 def table_stats(con: duckdb.DuckDBPyConnection, table_name: str, schema: str = "db"):
     """Show table statistics (row count, size)."""
+    schema = validate_identifier(schema, "schema")
+    table_name = validate_identifier(table_name, "table")
     print(f"📈 Statistics for table '{table_name}':\n")
 
     # Row count
@@ -124,7 +183,7 @@ def main():
             print(f"🔐 Using credential: {args.name}")
 
         except Exception as e:
-            print(f"❌ Error loading credential: {e}", file=sys.stderr)
+            print(f"❌ Error loading credential: {sanitize_error_message(e)}", file=sys.stderr)
             sys.exit(1)
 
     elif args.postgres:
@@ -165,7 +224,7 @@ def main():
             parser.print_help()
 
     except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        print(f"❌ Error: {sanitize_error_message(e)}", file=sys.stderr)
         sys.exit(1)
 
     finally:

@@ -15,6 +15,7 @@ Usage (direct connection):
 """
 
 import argparse
+import re
 import sys
 import duckdb
 from pathlib import Path
@@ -25,8 +26,62 @@ sys.path.insert(0, str(Path(__file__).parent))
 from credential_manager import CredentialManager, parse_credential_names
 
 
+# Valid identifier pattern (alphanumeric, underscore)
+VALID_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+# Dangerous SQL patterns for safe mode
+DANGEROUS_SQL_PATTERNS = [
+    r'\bDROP\s+', r'\bDELETE\s+', r'\bTRUNCATE\s+',
+    r'\bINSERT\s+', r'\bUPDATE\s+', r'\bALTER\s+',
+    r'\bCREATE\s+', r'\bGRANT\s+', r'\bREVOKE\s+'
+]
+
+
+def validate_identifier(name: str, identifier_type: str = "identifier") -> str:
+    """Validate SQL identifier to prevent SQL injection."""
+    if not name:
+        raise ValueError(f"Empty {identifier_type} name")
+
+    if not VALID_IDENTIFIER_PATTERN.match(name):
+        raise ValueError(
+            f"Invalid {identifier_type} name '{name}'. "
+            f"Only alphanumeric characters and underscores are allowed."
+        )
+
+    return name
+
+
+def validate_query_safety(query: str) -> None:
+    """
+    Check query for dangerous operations in safe mode.
+
+    Raises:
+        ValueError: If dangerous SQL operations are detected
+    """
+    query_upper = query.upper()
+    for pattern in DANGEROUS_SQL_PATTERNS:
+        if re.search(pattern, query_upper):
+            keyword = pattern.replace(r'\b', '').replace(r'\s+', '').strip()
+            raise ValueError(
+                f"Dangerous SQL operation '{keyword}' detected. "
+                f"Use --allow-writes to enable write operations."
+            )
+
+
+def sanitize_error_message(error: Exception) -> str:
+    """Sanitize error messages to prevent credential leakage."""
+    error_msg = str(error)
+    # Remove potential passwords from error messages
+    error_msg = re.sub(r'password=[^\s&]+', 'password=***', error_msg, flags=re.IGNORECASE)
+    error_msg = re.sub(r'pwd=[^\s&]+', 'pwd=***', error_msg, flags=re.IGNORECASE)
+    # Remove potential connection strings
+    error_msg = re.sub(r'host=[^\s]+\s+.*?password=[^\s]+', '[connection details redacted]', error_msg, flags=re.IGNORECASE)
+    return error_msg
+
+
 def setup_postgres_connection(con: duckdb.DuckDBPyConnection, connection_string: str, alias: str = "postgres_db"):
     """Attach PostgreSQL database to DuckDB connection."""
+    alias = validate_identifier(alias, "alias")
     con.execute("INSTALL postgres")
     con.execute("LOAD postgres")
     con.execute(f"ATTACH '{connection_string}' AS {alias} (TYPE POSTGRES)")
@@ -35,6 +90,7 @@ def setup_postgres_connection(con: duckdb.DuckDBPyConnection, connection_string:
 
 def setup_mysql_connection(con: duckdb.DuckDBPyConnection, connection_string: str, alias: str = "mysql_db"):
     """Attach MySQL database to DuckDB connection."""
+    alias = validate_identifier(alias, "alias")
     con.execute("INSTALL mysql")
     con.execute("LOAD mysql")
     con.execute(f"ATTACH '{connection_string}' AS {alias} (TYPE MYSQL)")
@@ -43,12 +99,14 @@ def setup_mysql_connection(con: duckdb.DuckDBPyConnection, connection_string: st
 
 def setup_sqlite_connection(con: duckdb.DuckDBPyConnection, db_path: str, alias: str = "sqlite_db"):
     """Attach SQLite database to DuckDB connection."""
+    alias = validate_identifier(alias, "alias")
     con.execute(f"ATTACH '{db_path}' AS {alias} (TYPE SQLITE)")
     print(f"✅ Connected to SQLite as '{alias}'")
 
 
 def setup_credential_connection(con: duckdb.DuckDBPyConnection, cred_manager: CredentialManager, cred_name: str):
     """Setup connection using credential from credentials file."""
+    cred_name = validate_identifier(cred_name, "credential name")
     cred = cred_manager.get(cred_name)
     connection_string = cred.get_connection_string()
     alias = cred_name  # Use credential name as alias
@@ -69,7 +127,8 @@ def execute_query(
     postgres_conn: Optional[str] = None,
     mysql_conn: Optional[str] = None,
     sqlite_path: Optional[str] = None,
-    format: str = "table"
+    format: str = "table",
+    allow_writes: bool = False
 ):
     """
     Execute a federated query across multiple databases.
@@ -81,10 +140,15 @@ def execute_query(
         mysql_conn: MySQL connection string (direct connection)
         sqlite_path: Path to SQLite database file (direct connection)
         format: Output format ('table', 'json', 'csv', 'markdown')
+        allow_writes: If False, blocks dangerous SQL operations (DROP, DELETE, etc.)
     """
     con = duckdb.connect(database=':memory:')
 
     try:
+        # Validate query safety unless writes are allowed
+        if not allow_writes:
+            validate_query_safety(query)
+
         # Setup connections from credentials file
         if credential_names:
             cred_manager = CredentialManager()
@@ -126,7 +190,7 @@ def execute_query(
         return result
 
     except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        print(f"❌ Error: {sanitize_error_message(e)}", file=sys.stderr)
         sys.exit(1)
 
     finally:
@@ -155,6 +219,11 @@ def main():
         default="table",
         help="Output format"
     )
+    parser.add_argument(
+        "--allow-writes",
+        action="store_true",
+        help="Allow write operations (DROP, DELETE, INSERT, UPDATE, etc.). Default: read-only"
+    )
 
     args = parser.parse_args()
 
@@ -180,7 +249,8 @@ def main():
         postgres_conn=args.postgres,
         mysql_conn=args.mysql,
         sqlite_path=args.sqlite,
-        format=args.format
+        format=args.format,
+        allow_writes=args.allow_writes
     )
 
 

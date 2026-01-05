@@ -173,9 +173,16 @@ See `${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/credentials.example.json` for the 
 
 **Show available databases:**
 ```bash
-# Find and use credentials file
-CREDS_FILE="${CREDS_FILE:-.claude/data-analyze/credentials.json}"
-[ -f "./$CREDS_FILE" ] && CREDS_FILE="./$CREDS_FILE" || CREDS_FILE="$HOME/$CREDS_FILE"
+# Find and use credentials file (Project → User)
+CREDS=".claude/data-analyze/credentials.json"
+if [ -f "./$CREDS" ]; then
+  CREDS_FILE="./$CREDS"
+elif [ -f "$HOME/$CREDS" ]; then
+  CREDS_FILE="$HOME/$CREDS"
+else
+  echo "No credentials file found" >&2
+  exit 1
+fi
 
 jq -r '.databases[].name' "$CREDS_FILE"
 jq -r '.databases[] | "\(.name): \(.type)"' "$CREDS_FILE"
@@ -190,6 +197,38 @@ jq -r '.databases[] | "\(.name): \(.type)"' "$CREDS_FILE"
    - User: `~/.claude/data-analyze/credentials.json`
 4. **File permissions** - Restrict access: `chmod 600 ~/.claude/data-analyze/credentials.json`
 5. **Reference by name only** - Scripts read credentials automatically, just use `--name`
+
+### Security Notes
+
+**SQL Injection Protection:**
+
+- Table and schema names are validated (alphanumeric and underscores only)
+- Credential names are validated before use
+- By default, write operations (DROP, DELETE, INSERT, UPDATE, etc.) are blocked
+- Use `--allow-writes` flag only when write operations are explicitly needed
+
+**Read-Only Mode (Default):**
+
+The federated query tool runs in read-only mode by default. Dangerous SQL operations are blocked:
+
+```bash
+# This will be blocked by default
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
+  --name prod_db \
+  --query "DELETE FROM prod_db.users WHERE id = 1"
+# Error: Dangerous SQL operation 'DELETE' detected. Use --allow-writes to enable.
+
+# To allow write operations (use with caution)
+python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
+  --name prod_db \
+  --query "DELETE FROM prod_db.users WHERE id = 1" \
+  --allow-writes
+```
+
+**Error Message Sanitization:**
+
+- Passwords and connection details are automatically redacted from error messages
+- Sensitive information will not leak through error output
 
 ### Usage Patterns
 
