@@ -1,0 +1,15 @@
+# Sensitive credentials - DO NOT COMMIT
+database-credentials.json
+
+# Logs
+logs/
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# DuckDB files
+*.duckdb
+*.duckdb.wal

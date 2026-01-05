@@ -1,120 +1,106 @@
 # data-analyze
 
-Comprehensive data analysis toolkit for Claude Code using DuckDB SQL.
+Federated data analysis plugin using DuckDB to query across PostgreSQL, MySQL, and SQLite databases.
 
 ## Features
 
-- **Statistical summaries**: Mean, median, std, percentiles, correlations
-- **Data quality checks**: Missing values, outliers, duplicates, type validation
-- **Visualization suggestions**: Chart type recommendations based on data
-- **Pattern detection**: Trends, anomalies, clustering insights
-
-## Supported Data Types
-
-- CSV/Excel files
-- JSON/API responses (including JSONL)
-- Parquet files
-- Database query results
+- **Cross-database queries**: Join tables across different database systems
+- **Schema exploration**: List tables, describe columns, sample data
+- **Credential management**: Secure, gitignored credential storage
+- **Multiple output formats**: Table, JSON, CSV, Markdown
 
 ## Prerequisites
 
-[DuckDB CLI](https://duckdb.org/docs/installation/) must be installed:
+- Python 3.8+
+- DuckDB (`pip install duckdb`)
 
-```bash
-# macOS
-brew install duckdb
+## Setup
 
-# Linux
-curl -LO https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
-unzip duckdb_cli-linux-amd64.zip
-sudo mv duckdb /usr/local/bin/
-```
+1. Copy the credentials template:
+   ```bash
+   cp skills/duckdb-federated-query/database-credentials.example.json \
+      skills/duckdb-federated-query/database-credentials.json
+   ```
 
-## Installation
+2. Edit `database-credentials.json` with your database connections:
+   ```json
+   {
+     "databases": [
+       {
+         "name": "prod_db",
+         "type": "postgres",
+         "host": "localhost",
+         "port": 5432,
+         "database": "mydb",
+         "user": "user",
+         "password": "secret"
+       }
+     ]
+   }
+   ```
 
-```bash
-# Use with --plugin-dir
-claude --plugin-dir /path/to/data-analyze
-
-# Or copy to your project
-cp -r data-analyze /your/project/.claude-plugin/
-```
+3. Secure the file:
+   ```bash
+   chmod 600 skills/duckdb-federated-query/database-credentials.json
+   ```
 
 ## Usage
 
-### Command: `/analyze`
+### Schema Exploration
 
 ```bash
-/analyze path/to/data.csv              # Full analysis
-/analyze path/to/data.json profile     # Profile only
-/analyze path/to/data.csv quality      # Quality checks only
-/analyze path/to/data.parquet stats    # Statistics only
+# List tables
+python scripts/schema_explorer.py --name prod_db --list-tables
+
+# Describe table structure
+python scripts/schema_explorer.py --name prod_db --describe users
+
+# Sample data
+python scripts/schema_explorer.py --name prod_db --sample orders --limit 10
 ```
 
-### Agent: `data-analyzer`
+### Query Execution
 
-The agent activates when you ask for data analysis help:
+```bash
+# Single database query
+python scripts/federated_query.py --name prod_db \
+  --query "SELECT * FROM prod_db.users LIMIT 10"
 
-- "Analyze this sales.csv file and find patterns"
-- "Check the data quality of user_metrics.json"
-- "What correlations exist in this dataset?"
-- "Detect outliers in my financial data"
+# Cross-database join
+python scripts/federated_query.py --names prod_db,sales_db \
+  --query "SELECT u.email, o.total
+           FROM prod_db.users u
+           JOIN sales_db.orders o ON u.id = o.user_id"
 
-### Skill: `data-analysis`
+# Export to JSON
+python scripts/federated_query.py --name prod_db \
+  --query "SELECT * FROM prod_db.analytics" --format json
+```
 
-Provides guidance on:
-- DuckDB SQL syntax for analysis
-- Statistical methods and functions
-- Data quality check patterns
-- Visualization recommendations
-
-## Components
+## Structure
 
 ```
 data-analyze/
-├── .claude-plugin/
-│   └── plugin.json
-├── commands/
-│   └── analyze.md           # /analyze command
-├── agents/
-│   └── data-analyzer.md     # Data analysis agent
-├── skills/
-│   └── data-analysis/
-│       ├── SKILL.md         # Analysis guidance
-│       └── references/
-│           ├── duckdb-functions.md
-│           └── visualization-guide.md
-└── scripts/
-    ├── profile.sql          # Data profiling template
-    └── quality-check.sql    # Quality check template
+├── .claude-plugin/plugin.json
+├── README.md
+└── skills/duckdb-federated-query/
+    ├── SKILL.md
+    ├── database-credentials.example.json
+    ├── .gitignore
+    ├── scripts/
+    │   ├── federated_query.py
+    │   ├── schema_explorer.py
+    │   └── credential_manager.py
+    └── references/
+        ├── extensions.md
+        └── query_patterns.md
 ```
 
-## Example Workflow
+## Security
 
-1. Run `/analyze sales.csv` on your data file
-2. Claude profiles the data and identifies column types
-3. Statistical summaries are generated for numeric columns
-4. Data quality issues (missing values, duplicates, outliers) are identified
-5. A Markdown report is generated with findings and visualization suggestions
-
-## DuckDB Quick Reference
-
-```sql
--- Read CSV
-SELECT * FROM 'file.csv' LIMIT 10;
-
--- Read JSON
-SELECT * FROM read_json('file.json');
-
--- Basic statistics
-SELECT AVG(col), MEDIAN(col), STDDEV(col) FROM 'file.csv';
-
--- Missing values
-SELECT COUNT(*) - COUNT(col) as missing FROM 'file.csv';
-
--- Correlation
-SELECT CORR(col_a, col_b) FROM 'file.csv';
-```
+- `database-credentials.json` is gitignored
+- Use read-only database accounts for analytics
+- Credentials referenced by name, never exposed in queries
 
 ## License
 

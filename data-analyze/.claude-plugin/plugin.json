@@ -1,9 +1,9 @@
 {
   "name": "data-analyze",
-  "version": "0.1.0",
-  "description": "Comprehensive data analysis toolkit using DuckDB SQL for CSV, JSON, and database results",
+  "version": "0.2.0",
+  "description": "Federated data analysis using DuckDB to query across PostgreSQL, MySQL, and SQLite databases",
   "author": {
     "name": "meomeocoj"
   },
-  "keywords": ["data", "analysis", "duckdb", "sql", "csv", "json", "statistics"]
+  "keywords": ["data", "analysis", "duckdb", "sql", "postgres", "mysql", "sqlite", "federated"]
 }
