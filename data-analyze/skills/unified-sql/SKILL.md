@@ -7,39 +7,34 @@ description: Query databases and explore data. Use when the user mentions databa
 
 Query and analyze data across PostgreSQL, MySQL, and SQLite databases using DuckDB as a unified query engine.
 
-## FIRST STEP: Verify Database Credentials
+---
 
-**IMPORTANT**: Before using any query or exploration capabilities, verify which databases are configured.
+## ⚠️ MANDATORY FIRST STEP: List Available Databases
 
-### Check Available Databases
+**YOU MUST ALWAYS RUN THIS FIRST** before attempting ANY database operation.
 
-Credentials are searched in order: Project → User
+**DO NOT** skip this step. **DO NOT** assume database names. **DO NOT** run queries until you see the list of available databases.
 
 ```bash
-# Find credentials file (Project first, then User)
+# ALWAYS run this first - find and list configured databases
 CREDS=".claude/data-analyze/credentials.json"
 if [ -f "./$CREDS" ]; then
   CREDS_FILE="./$CREDS"
+  echo "Using project credentials: $CREDS_FILE"
 elif [ -f "$HOME/$CREDS" ]; then
   CREDS_FILE="$HOME/$CREDS"
+  echo "Using user credentials: $CREDS_FILE"
 else
-  echo "No credentials file found"; exit 1
+  echo "❌ No credentials file found!"
+  echo "Create credentials at: ./.claude/data-analyze/credentials.json (project) or ~/.claude/data-analyze/credentials.json (user)"
+  exit 1
 fi
 
-# List all configured database names
-jq -r '.databases[].name' "$CREDS_FILE"
-
-# Show database names and types (safe - no passwords)
-jq -r '.databases[] | "\(.name): \(.type)"' "$CREDS_FILE"
-
-# Check if specific database exists
-jq -e '.databases[] | select(.name=="kolverse")' "$CREDS_FILE" >/dev/null && echo "Found" || echo "Not found"
-
-# View database configuration WITHOUT exposing password
-jq '.databases[] | select(.name=="your_db_name") | {name, type, host, database}' "$CREDS_FILE"
+echo "Available databases:"
+jq -r '.databases[] | "  - \(.name) (\(.type))"' "$CREDS_FILE"
 ```
 
-**Only proceed with queries after confirming your target database is listed above.**
+**ONLY PROCEED** with queries after seeing the list of available databases above.
 
 ---
 
