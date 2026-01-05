@@ -13,18 +13,30 @@ Query and analyze data across PostgreSQL, MySQL, and SQLite databases using Duck
 
 ### Check Available Databases
 
+Credentials are searched in order: Project → User
+
 ```bash
+# Find credentials file (Project first, then User)
+CREDS=".claude/data-analyze/credentials.json"
+if [ -f "./$CREDS" ]; then
+  CREDS_FILE="./$CREDS"
+elif [ -f "$HOME/$CREDS" ]; then
+  CREDS_FILE="$HOME/$CREDS"
+else
+  echo "No credentials file found"; exit 1
+fi
+
 # List all configured database names
-jq -r '.databases[].name' database-credentials.json
+jq -r '.databases[].name' "$CREDS_FILE"
 
 # Show database names and types (safe - no passwords)
-jq -r '.databases[] | "\(.name): \(.type)"' database-credentials.json
+jq -r '.databases[] | "\(.name): \(.type)"' "$CREDS_FILE"
 
 # Check if specific database exists
-jq -e '.databases[] | select(.name=="kolverse")' database-credentials.json >/dev/null && echo "Found" || echo "Not found"
+jq -e '.databases[] | select(.name=="kolverse")' "$CREDS_FILE" >/dev/null && echo "Found" || echo "Not found"
 
 # View database configuration WITHOUT exposing password
-jq '.databases[] | select(.name=="your_db_name") | {name, type, host, database}' database-credentials.json
+jq '.databases[] | select(.name=="your_db_name") | {name, type, host, database}' "$CREDS_FILE"
 ```
 
 **Only proceed with queries after confirming your target database is listed above.**
@@ -152,7 +164,11 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
 
 ### Credential File Structure
 
-The skill uses `database-credentials.json` to store database connections securely. See `database-credentials.example.json` for the full template.
+Credentials are stored in `.claude/data-analyze/credentials.json` and searched in order:
+1. **Project**: `./.claude/data-analyze/credentials.json`
+2. **User**: `~/.claude/data-analyze/credentials.json`
+
+See `${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/database-credentials.example.json` for the template.
 
 **Key points:**
 - Each database needs a unique `name` (this is what you reference in queries)
@@ -162,29 +178,29 @@ The skill uses `database-credentials.json` to store database connections securel
 
 **Show available databases:**
 ```bash
-# List all database names
-jq -r '.databases[].name' database-credentials.json
+# Find and use credentials file
+CREDS_FILE="${CREDS_FILE:-.claude/data-analyze/credentials.json}"
+[ -f "./$CREDS_FILE" ] && CREDS_FILE="./$CREDS_FILE" || CREDS_FILE="$HOME/$CREDS_FILE"
 
-# Show database types
-jq -r '.databases[] | "\(.name): \(.type)"' database-credentials.json
-
-# Check specific database exists
-jq -e '.databases[] | select(.name=="kolverse")' database-credentials.json
+jq -r '.databases[].name' "$CREDS_FILE"
+jq -r '.databases[] | "\(.name): \(.type)"' "$CREDS_FILE"
 ```
 
 ### Security Best Practices
 
-1. **Never commit credentials** - `database-credentials.json` is in `.gitignore`
+1. **Never commit credentials** - `.claude/` is typically gitignored
 2. **Use read-only accounts** - Grant minimal permissions for analytics queries
-3. **Credential file location** - Keep in skill directory: `.claude/skills/duckdb-federated-query/`
-4. **File permissions** - Restrict access: `chmod 600 database-credentials.json`
+3. **Credential file locations**:
+   - Project: `./.claude/data-analyze/credentials.json`
+   - User: `~/.claude/data-analyze/credentials.json`
+4. **File permissions** - Restrict access: `chmod 600 ~/.claude/data-analyze/credentials.json`
 5. **Reference by name only** - Scripts read credentials automatically, just use `--name`
 
 ### Usage Patterns
 
 **Single database:**
 ```bash
-# Scripts read credentials from database-credentials.json automatically
+# Scripts find credentials automatically (Project → User)
 python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/schema_explorer.py --name kolverse --list-tables
 ```
 
@@ -268,8 +284,10 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
 ### Compare with External Analytics
 
 ```bash
-# Show available databases
-jq -r '.databases[].name' database-credentials.json
+# Find credentials and show available databases
+CREDS=".claude/data-analyze/credentials.json"
+[ -f "./$CREDS" ] && CREDS_FILE="./$CREDS" || CREDS_FILE="$HOME/$CREDS"
+jq -r '.databases[].name' "$CREDS_FILE"
 
 # Join project data with external database by name
 python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
@@ -291,23 +309,27 @@ python ${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/scripts/federated_query.py \
 
 ### Credential Issues
 ```bash
-# Verify database-credentials.json exists
-ls -la database-credentials.json
+# Check credential file locations
+CREDS=".claude/data-analyze/credentials.json"
+ls -la "./$CREDS" 2>/dev/null || ls -la "$HOME/$CREDS" 2>/dev/null || echo "No credentials found"
+
+# Find and use credentials file
+[ -f "./$CREDS" ] && CREDS_FILE="./$CREDS" || CREDS_FILE="$HOME/$CREDS"
 
 # Show available databases
-jq -r '.databases[].name' database-credentials.json
+jq -r '.databases[].name' "$CREDS_FILE"
 
 # Validate JSON syntax
-jq . database-credentials.json
+jq . "$CREDS_FILE"
 
 # Show specific database configuration (without exposing password)
-jq '.databases[] | select(.name=="kolverse") | {name, type, host, database}' database-credentials.json
+jq '.databases[] | select(.name=="kolverse") | {name, type, host, database}' "$CREDS_FILE"
 ```
 
 ### Connection Errors
 - Verify database is accessible: `psql -h HOST -U USER -d DATABASE` (use credentials from your config)
 - Check firewall rules and port accessibility
-- Confirm credentials in `database-credentials.json` are correct
+- Confirm credentials in `.claude/data-analyze/credentials.json` are correct
 - Test connection manually first before using the skill
 
 ### Extension Not Found
@@ -335,8 +357,8 @@ con.execute("LOAD postgres")
 - **scripts/credential_manager.py** - Credential loading and validation
 
 ### Credentials
-- **database-credentials.json** - Your database credentials (gitignored, create from example)
-- **database-credentials.example.json** - Template for credentials file
+- **`.claude/data-analyze/credentials.json`** - Your database credentials (Project or User scope)
+- **`${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/database-credentials.example.json`** - Template for credentials file
 
 ### References
 - **references/extensions.md** - DuckDB extension documentation
