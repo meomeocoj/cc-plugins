@@ -89,8 +89,8 @@ def execute_query(
         if credential_names:
             cred_manager = CredentialManager()
             if not cred_manager.has_credentials():
-                print("❌ No credentials file found. Create database-credentials.json", file=sys.stderr)
-                print("   See database-credentials.example.json for template", file=sys.stderr)
+                print("❌ No credentials file found. Create .claude/data-analyze/credentials.json", file=sys.stderr)
+                print("   See credentials.example.json for template", file=sys.stderr)
                 sys.exit(1)
 
             print(f"🔐 Loading {len(credential_names)} credential(s)...")
@@ -141,7 +141,7 @@ def main():
     parser.add_argument("--query", "-q", required=True, help="SQL query to execute")
 
     # Credential-based connections (preferred)
-    parser.add_argument("--name", help="Single database credential name from database-credentials.json")
+    parser.add_argument("--name", help="Single database credential name from credentials.json")
     parser.add_argument("--names", help="Comma-separated database credential names (e.g., 'db1,db2,db3')")
 
     # Direct connection options (fallback)

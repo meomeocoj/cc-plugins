@@ -100,7 +100,7 @@ Join tables across different database systems in a single query.
 **Pattern:**
 ```sql
 -- Databases are referenced by their credential names
--- For example, if you have "users_db" and "orders_db" in database-credentials.json
+-- For example, if you have "users_db" and "orders_db" in credentials.json
 
 SELECT
     u.column,
@@ -163,7 +163,7 @@ Credentials are stored in `.claude/data-analyze/credentials.json` and searched i
 1. **Project**: `./.claude/data-analyze/credentials.json`
 2. **User**: `~/.claude/data-analyze/credentials.json`
 
-See `${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/database-credentials.example.json` for the template.
+See `${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/credentials.example.json` for the template.
 
 **Key points:**
 - Each database needs a unique `name` (this is what you reference in queries)
@@ -353,7 +353,7 @@ con.execute("LOAD postgres")
 
 ### Credentials
 - **`.claude/data-analyze/credentials.json`** - Your database credentials (Project or User scope)
-- **`${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/database-credentials.example.json`** - Template for credentials file
+- **`${CLAUDE_PLUGIN_ROOT}/skills/unified-sql/credentials.example.json`** - Template for credentials file
 
 ### References
 - **references/extensions.md** - DuckDB extension documentation

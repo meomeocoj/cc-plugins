@@ -34,7 +34,7 @@ Credentials are stored in `.claude/data-analyze/credentials.json` at either:
 ```bash
 # Create user-scoped credentials
 mkdir -p ~/.claude/data-analyze
-cp skills/unified-sql/database-credentials.example.json \
+cp skills/unified-sql/credentials.example.json \
    ~/.claude/data-analyze/credentials.json
 ```
 
@@ -108,7 +108,7 @@ data-analyze/
 │   └── block-credentials.sh  # Blocks credential file reads
 └── skills/unified-sql/
     ├── SKILL.md
-    ├── database-credentials.example.json
+    ├── credentials.example.json
     ├── .gitignore
     ├── scripts/
     │   ├── federated_query.py

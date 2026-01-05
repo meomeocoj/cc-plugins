@@ -1,5 +1,5 @@
 # Sensitive credentials - DO NOT COMMIT
-database-credentials.json
+credentials.json
 
 # Logs
 logs/

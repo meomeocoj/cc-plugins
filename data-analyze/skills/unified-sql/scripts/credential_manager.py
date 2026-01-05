@@ -2,7 +2,7 @@
 """
 Credential Manager for DuckDB Federated Query
 
-Manages database credentials from database-credentials.json file.
+Manages database credentials from .claude/data-analyze/credentials.json file.
 """
 
 import json

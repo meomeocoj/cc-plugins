@@ -86,7 +86,7 @@ def main():
     )
 
     # Credential-based connection (preferred)
-    parser.add_argument("--name", "-n", help="Database credential name from database-credentials.json")
+    parser.add_argument("--name", "-n", help="Database credential name from credentials.json")
 
     # Direct connection options (fallback)
     db_group = parser.add_mutually_exclusive_group()
@@ -113,8 +113,8 @@ def main():
         try:
             cred_manager = CredentialManager()
             if not cred_manager.has_credentials():
-                print("❌ No credentials file found. Create database-credentials.json", file=sys.stderr)
-                print("   See database-credentials.example.json for template", file=sys.stderr)
+                print("❌ No credentials file found. Create .claude/data-analyze/credentials.json", file=sys.stderr)
+                print("   See credentials.example.json for template", file=sys.stderr)
                 sys.exit(1)
 
             cred = cred_manager.get(args.name)
