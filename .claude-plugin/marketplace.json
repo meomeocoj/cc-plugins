@@ -1,9 +1,10 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "cc-plugins",
   "displayName": "CC Plugins",
   "description": "My awesome collection of custom plugins for my development life",
   "version": "0.1.0",
-  "author": {
+  "owner": {
     "name": "meomeocoj",
     "email": "tminh1103@gmail.com"
   },
