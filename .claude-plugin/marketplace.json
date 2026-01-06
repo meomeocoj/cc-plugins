@@ -18,5 +18,13 @@
   "license": "MIT",
   "engines": {
     "claude-code": ">=1.0.0"
-  }
+  },
+  "plugins": [
+    {
+      "name": "data-analyze",
+      "path": "./plugins/data-analyze",
+      "description": "Federated data analysis using DuckDB to query across PostgreSQL, MySQL, and SQLite databases",
+      "category": "development"
+    }
+  ]
 }
